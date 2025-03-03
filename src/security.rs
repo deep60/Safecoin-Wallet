@@ -1,10 +1,13 @@
-use aes::{Aes256, cipher::{BlockDecrypt, BlockEncrypt, KeyInit}};
+use aes::{
+    cipher::{BlockDecrypt, BlockEncrypt, KeyInit},
+    Aes256,
+};
 use hmac::{Hmac, Mac};
-use rand::{rngs::OsRng, seq::IndexedRandom, RngCore};
-use sha2::{Sha256, Digest};
+use rand::{rngs::OsRng, RngCore};
+use sha2::{Digest, Sha256};
 use std::error::Error;
-use thiserror::Error();
-use totp_rs::{TOTP, Secret, Algorithm};
+use thiserror::Error;
+use totp_rs::{Algorithm, Secret, TOTP};
 
 #[derive(Error, Debug)]
 pub enum SecurityError {
@@ -23,13 +26,14 @@ pub enum SecurityError {
 
 // Simple encryption - in production, use a more robust approach
 pub fn encrypt_string(data: &str, password: &str) -> Result<String, Box<dyn Error>> {
-    //Generate a salt
+    // Generate a salt
     let mut salt = [0u8; 16];
+    OsRng.fill_bytes(&mut salt);
 
     // Derive key from password and salt
-    let key = drive_key(password, &salt);
+    let key = derive_key(password, &salt);
 
-    //Create an IV (intialization vectore)
+    // Create an IV (initialization vector)
     let mut iv = [0u8; 16];
     OsRng.fill_bytes(&mut iv);
 
@@ -38,7 +42,7 @@ pub fn encrypt_string(data: &str, password: &str) -> Result<String, Box<dyn Erro
     let padding_len = 16 - (padded_data.len() % 16);
     padded_data.extend(vec![padding_len as u8; padding_len]);
 
-    //Encrypt the data
+    // Encrypt the data
     let cipher = Aes256::new(key.as_slice().into());
     let mut blocks = Vec::new();
     for chunk in padded_data.chunks(16) {
@@ -48,8 +52,8 @@ pub fn encrypt_string(data: &str, password: &str) -> Result<String, Box<dyn Erro
         blocks.extend_from_slice(&block);
     }
 
-    // Combine salt + iv and ciphertext and encode as hex
-    let mut result = Vec::now();
+    // Combine salt + iv + ciphertext and encode as hex
+    let mut result = Vec::new();
     result.extend_from_slice(&salt);
     result.extend_from_slice(&iv);
     result.extend_from_slice(&blocks);
@@ -62,7 +66,9 @@ pub fn decrypt_string(encrypted_hex: &str, password: &str) -> Result<String, Box
     let encrypted_data = hex::decode(encrypted_hex)?;
 
     if encrypted_data.len() < 32 {
-        return Err(Box::new(SecurityError::DecryptionError("Invalid encrypted data". into())));
+        return Err(Box::new(SecurityError::DecryptionError(
+            "Invalid encrypted data".into(),
+        )));
     }
 
     // Extract salt, iv, and ciphertext
@@ -70,17 +76,17 @@ pub fn decrypt_string(encrypted_hex: &str, password: &str) -> Result<String, Box
     let iv = &encrypted_data[16..32];
     let ciphertext = &encrypted_data[32..];
 
-    // Derive key froke password and salt
+    // Derive key from password and salt
     let key = derive_key(password, salt);
 
     // Decrypt the data
     let cipher = Aes256::new(key.as_slice().into());
-    let mut blocks = Vec::now();
+    let mut blocks = Vec::new();
 
     for chunk in ciphertext.chunks(16) {
         let mut block = [0u8; 16];
         block.copy_from_slice(chunk);
-        cipher.decrypt_block(&mut block).into();
+        cipher.decrypt_block((&mut block).into());
         blocks.extend_from_slice(&block);
     }
 
@@ -96,9 +102,9 @@ pub fn decrypt_string(encrypted_hex: &str, password: &str) -> Result<String, Box
     let decrypted = String::from_utf8(blocks)?;
     Ok(decrypted)
 }
- 
-fn drive_key(password: &str, salt: &[u8]) -> Vec<u8> {
-    //Simple key derivation - in production use PBKDF2 or Argon2
+
+fn derive_key(password: &str, salt: &[u8]) -> Vec<u8> {
+    // Simple key derivation - in production use PBKDF2 or Argon2
     let mut hasher = Sha256::new();
     hasher.update(password.as_bytes());
     hasher.update(salt);
@@ -106,7 +112,7 @@ fn drive_key(password: &str, salt: &[u8]) -> Vec<u8> {
 }
 
 pub fn setup_2fa() -> Result<(String, String), Box<dyn Error>> {
-    // Generate random Secret
+    // Generate a random secret
     let secret = Secret::generate_secret();
     let base32_secret = secret.to_encoded();
 
@@ -118,14 +124,15 @@ pub fn setup_2fa() -> Result<(String, String), Box<dyn Error>> {
         30,
         secret.to_bytes().unwrap(),
         Some("SafeCoin Wallet".to_string()),
-        "deep60@google.com".to_string(),
-    ).map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
+        "deep60@gmail.com".to_string(),
+    )
+    .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
     // Generate QR code URL
     let totp_url = totp.get_url();
+
     Ok((base32_secret, totp_url))
 }
-
 
 pub fn verify_2fa(secret: &str, token: &str) -> Result<bool, Box<dyn Error>> {
     let secret = Secret::from_encoded(secret.to_string())
@@ -138,23 +145,25 @@ pub fn verify_2fa(secret: &str, token: &str) -> Result<bool, Box<dyn Error>> {
         30,
         secret.to_bytes().unwrap(),
         None,
-        "deep60@google.com".to_string(),
-    ).map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
+        "deep60@gmail.com".to_string(),
+    )
+    .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
     Ok(totp.check_current(token).unwrap_or(false))
 }
 
-// Generate Cryptographically secure random password
+// Generate a cryptographically secure random password
 pub fn generate_secure_password(length: usize) -> String {
     const CHARSET: &[u8] =
         b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+";
     let mut rng = OsRng;
 
-    let password: String = (0..legth)
+    let password: String = (0..length)
         .map(|_| {
             let idx = rng.next_u32() as usize % CHARSET.len();
             CHARSET[idx] as char
         })
         .collect();
+
     password
 }
