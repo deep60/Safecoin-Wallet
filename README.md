@@ -30,30 +30,6 @@ SafeCoin Wallet is designed with these key principles:
   - Two-factor authentication (2FA)
   - Address validation to prevent errors
 
-## Development Status
-
-This project is currently in active development. See the roadmap below for progress:
-
-- [x] Phase 1: Core Functionality 
-  - [x] Key generation and encryption
-  - [x] Seed phrase management
-  - [x] Basic wallet operations
-
-- [ ] Phase 2: Blockchain Integration
-  - [ ] Bitcoin API connection
-  - [ ] Ethereum API connection
-  - [ ] Transaction signing and broadcasting
-
-- [ ] Phase 3: Security Enhancements
-  - [ ] 2FA implementation
-  - [ ] Secure storage improvements
-  - [ ] Anti-phishing measures
-
-- [ ] Phase 4: UI and Deployment
-  - [ ] GUI development with Tauri
-  - [ ] Cross-platform testing
-  - [ ] Mobile support investigation
-
 ## Getting Started
 
 ### Prerequisites
