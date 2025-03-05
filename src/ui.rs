@@ -72,7 +72,7 @@ impl WalletUI {
         if self.current_wallet.is_some() {
             match choice {
                 "1" => self.view_wallet_details(),
-                "2" => self.check_balances(),
+                "2" => self.check_balances().await,
                 "3" => self.send_transaction(),
                 "4" => self.transaction_history(),
                 "5" => self.switch_wallet(),
@@ -91,7 +91,7 @@ impl WalletUI {
             }
         } else {
             match choice {
-                "1" => self.current_wallet(),
+                "1" => self.current_wallet,
                 "2" => self.load_wallet(),
                 "3" => self.list_wallets(),
                 "4" => self.impot_wallets(),
@@ -118,10 +118,10 @@ impl WalletUI {
 
             for coin_type in wallet.coin_types {
                 let address = match coin_type.as_str() {
-                    "bitcoin" => wallet.get_addresses(CoinType::Bitcoin).unwrap_or_default(),
-                    "ethereum" => wallet.get_addresses(CoinType::Ethereum).unwrap_or_default(),
-                    "solana" => wallet.get_addresses(CoinType::Solana).unwrap_or_default(),
-                    "cardano" => wallet.get_addresses(CoinType::Cardano).unwrap_or_default(),
+                    "bitcoin" => wallet.get_address(CoinType::Bitcoin).unwrap_or_default(),
+                    "ethereum" => wallet.get_address(CoinType::Ethereum).unwrap_or_default(),
+                    "solana" => wallet.get_address(CoinType::Solana).unwrap_or_default(),
+                    "cardano" => wallet.get_address(CoinType::Cardano).unwrap_or_default(),
                     _ => "Unknown coin type".to_string(),
                 };
 
@@ -134,7 +134,7 @@ impl WalletUI {
         Ok(())  
     }
 
-    async fn check_balances(&self) -> Result<(), Box<dyn std::error::Error>> {
+    fn check_balances(&self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(wallet) = &self.current_wallet {
             println!("\nChecking balances...");
             let mut balances = HashMap::new();
@@ -253,7 +253,7 @@ impl WalletUI {
             println!("\nTransaction Details");
             println!("---------------------");
             println!("Coin: {}", capitalize(coin_type_str));
-            println!("From: {}", wallet.get_addresses(coin_type.clone())?);
+            println!("From: {}", wallet.get_address(coin_type.clone())?);
             println!("To: {}", to_address);
             println!("Amount: {}", amount);
 
@@ -553,12 +553,12 @@ pub mod cli {
                 for coin_type in &wallet.coin_types {
                     match coin_type.as_str() {
                         "bitcoin" => {
-                            if let Ok(address) = wallet.get_addresses(CoinType::Bitcoin) {
+                            if let Ok(address) = wallet.get_address(CoinType::Bitcoin) {
                                 println!("Bitcoin address: {}", address);
                             }
                         },
                         "ethereum" => {
-                            if let Ok(address) = wallet.get_addresses(CoinType::Ethereum) {
+                            if let Ok(address) = wallet.get_address(CoinType::Ethereum) {
                                 println!("Ethereum address: {}", address);
                             }
                         },

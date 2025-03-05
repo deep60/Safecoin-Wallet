@@ -3,7 +3,7 @@ use aes::{
     Aes256,
 };
 use hmac::{Hmac, Mac};
-use rand::{rngs::OsRng, RngCore};
+use rand_core::{CryptoRng, OsRng, RngCore};
 use sha2::{Digest, Sha256};
 use std::error::Error;
 use thiserror::Error;
@@ -111,7 +111,7 @@ fn derive_key(password: &str, salt: &[u8]) -> Vec<u8> {
     hasher.finalize().to_vec()
 }
 
-pub fn setup_2fa() -> Result<(String, String), Box<dyn Error>> {
+pub fn setup_2fa() -> Result<(TOTP, String), Box<dyn std::error::Error>> {
     // Generate a random secret
     let secret = Secret::generate_secret();
     let base32_secret = secret.to_encoded();

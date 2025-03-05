@@ -91,7 +91,7 @@ impl WalletManager {
 
     pub fn generate_wallet(&self, name: &str, password: &str) -> Result<Wallet, WalletError> {
         // Generate a random mnemonic (seed phrase)
-        let mnemonic = Mnemonic::new(MnemonicType::Words12, Language::English);
+        let mnemonic = Mnemonic::new(Mnemonic::Words12, Language::English);
         let seed_phrase = mnemonic.phrase().to_string();
 
         // Derive seed from mnemonic
