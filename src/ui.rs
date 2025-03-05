@@ -2,7 +2,7 @@ use rand::seq::IndexedRandom;
 
 use crate::wallet::{self, WalletManager};
 use crate::blockchain::{BlockchainClient, Transaction, TransactionStatus};
-use crate::wallet::{CoinType, Wallet, WalletManager};
+use crate::wallet::{CoinType, Wallet};
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
 
@@ -33,7 +33,7 @@ impl WalletUI {
         }
     }
 
-    fn display_main_menu(&mut self) -> Result<(), Box<dyn std::io::error::Error>> {
+    fn display_main_menu(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\nMain Menu");
         println!("-----------");
 
@@ -233,7 +233,7 @@ impl WalletUI {
             println!("Enter amount to send: ");
             io::stdout().flush()?;
             let mut amount_str = String::new();
-            io::stdout().read_line(&mut amount_str)?;
+            io::stdin().read_line(&mut amount_str)?;
             let amount = match amount_str.trim().parse::<f64>() {
                 Ok(a) => a,
                 Err(_) => {
@@ -381,7 +381,7 @@ impl WalletUI {
         io::stdout().flush()?;
         let mut choice = String::new();
         io::stdin().read_line(&mut choice)?;
-        let choice = choice.trim().parse()::<usize>().unwrap_or(0);
+        let choice = choice.trim().parse::<usize>().unwrap_or(0);
 
         if choice < 1 || choice > wallets.len() {
             println!("Invalid choice");
@@ -474,7 +474,9 @@ pub mod cli {
             match choice.trim() {
                 "1" => create_wallet(wallet_manager).await,
                 "2" => list_wallets(wallet_manager).await,
-                "3" => load_wallet(wallet_manager).await,
+                "3" => {
+                    let _ = load_wallet(wallet_manager).await; 
+                 },
                 "4" => check_balance(wallet_manager, blockchain_client).await,
                 "5" => send_transaction(wallet_manager, blockchain_client).await,
                 "6" => {

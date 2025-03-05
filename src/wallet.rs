@@ -1,6 +1,6 @@
 use crate::config::AppConfig;
 use crate::security;
-use bip39::{Language, Mnemonic, MnemonicType};
+use bip39::{Language, Mnemonic};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
