@@ -64,7 +64,7 @@ This project is currently in active development. See the roadmap below for progr
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/safecoin-wallet.git
+git clone https://github.com/deep60/Safecoin-Wallet.git
 cd safecoin-wallet
 
 # Build the project
