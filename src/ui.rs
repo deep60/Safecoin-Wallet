@@ -1,15 +1,10 @@
 use rand::seq::IndexedRandom;
-use reqwest::dns::Name;
 
 use crate::wallet::{self, WalletManager};
 use crate::blockchain::{BlockchainClient, Transaction, TransactionStatus};
-use crate::config::AppConfig;
 use crate::wallet::{CoinType, Wallet, WalletManager};
 use std::collections::HashMap;
-use std::fmt::format;
 use std::io::{self, Read, Write};
-use std::os::unix::io;
-use std::path::PathBuf;
 
 pub struct WalletUI {
     wallet_manager: WalletManager,
@@ -92,7 +87,7 @@ impl WalletUI {
                     std::process::exit(0);
                 },
 
-                _ => println!("Invalid choice");
+                _ => println!("Invalid choice"),
             }
         } else {
             match choice {
@@ -161,7 +156,7 @@ impl WalletUI {
                     "ethereum" => {
                         match self.blockchain_client.get_balance(wallet, CoinType::Ethereum).await {
                             Ok(balance) => {
-                                balances.insert(ethereum, format!("{:.6} ETH", balance));
+                                balances.insert("ethereum", format!("{:.6} ETH", balance));
                             },
                             Err(e) => {
                                 balances.insert("ethereum", format!("Error: {}", e));
@@ -288,7 +283,7 @@ impl WalletUI {
                 },
 
                 Err(e) => {
-                    println!("Error creating transaction: {}". e);
+                    println!("Error creating transaction: {}", e);
                 }
             }
         } else {
@@ -556,12 +551,12 @@ pub mod cli {
                 for coin_type in &wallet.coin_types {
                     match coin_type.as_str() {
                         "bitcoin" => {
-                            if let Ok(address) = wallet.get_address(CoinType::Bitcoin) {
+                            if let Ok(address) = wallet.get_addresses(CoinType::Bitcoin) {
                                 println!("Bitcoin address: {}", address);
                             }
                         },
                         "ethereum" => {
-                            if let Ok(address) = wallet.get_address(CoinType::Ethereum) {
+                            if let Ok(address) = wallet.get_addresses(CoinType::Ethereum) {
                                 println!("Ethereum address: {}", address);
                             }
                         },
@@ -708,6 +703,7 @@ fn capitalize(s: &str) -> String {
 
 fn format_timestamp(timestamp: u64) -> String {
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use chrono;
     
     let system_time = UNIX_EPOCH + Duration::from_secs(timestamp);
     let datetime = chrono::DateTime::<chrono::Utc>::from(system_time);

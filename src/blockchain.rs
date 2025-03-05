@@ -54,7 +54,7 @@ impl BlockchainClient {
         Self {
             btc_api_url: btc_api_url.to_string(),
             eth_api_url: eth_api_url.to_string(),
-            http_client: reqwest::Client,
+            http_client: reqwest::Client::new(),
         }
     }
 
