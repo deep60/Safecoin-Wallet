@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let blockchain_client = BlockchainClient::new(&config.btc_api_url, &config.eth_api_url);
 
-    ui::cli::run_interactive(&wallet_manager, &blockchain_client).await;
+    ui::run_interactive(&wallet_manager, &blockchain_client).await;
 
     Ok(())
 }

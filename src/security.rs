@@ -28,14 +28,14 @@ pub enum SecurityError {
 pub fn encrypt_string(data: &str, password: &str) -> Result<String, Box<dyn Error>> {
     // Generate a salt
     let mut salt = [0u8; 16];
-    OsRng.fill_bytes(&mut salt);
+    OsRng::default().fill_bytes(&mut salt);
 
     // Derive key from password and salt
     let key = derive_key(password, &salt);
 
     // Create an IV (initialization vector)
     let mut iv = [0u8; 16];
-    OsRng.fill_bytes(&mut iv);
+    OsRng::default().fill_bytes(&mut iv);
 
     // Pad the data to be a multiple of 16 bytes (AES block size)
     let mut padded_data = data.as_bytes().to_vec();
@@ -122,7 +122,7 @@ pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error:
         6,
         1,
         30,
-        secret.to_bytes().unwrap(),
+        secret.to_bytes().map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
         Some("SafeCoin Wallet".to_string()),
         username.to_string(),
     )
@@ -143,13 +143,13 @@ pub fn verify_2fa(secret: &str, token: &str, username: &str) -> Result<bool, Box
         6,
         1,
         30,
-        secret.to_bytes().unwrap(),
+        secret.to_bytes().map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
         None,
         username.to_string(),
     )
     .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
-    Ok(totp.check_current(token).unwrap_or(false))
+    Ok(totp.check_current(token).map_err(|e| Box::(SecurityError::TOTPError(e.to_string()))))?)
 }
 
 // Generate a cryptographically secure random password
