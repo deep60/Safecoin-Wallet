@@ -1,7 +1,7 @@
 use rand::seq::IndexedRandom;
 
-use crate::wallet::{self, WalletManager};
 use crate::blockchain::{BlockchainClient, Transaction, TransactionStatus};
+use crate::wallet::{self, WalletManager};
 use crate::wallet::{CoinType, Wallet};
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
@@ -11,7 +11,6 @@ pub struct WalletUI {
     blockchain_client: BlockchainClient,
     current_wallet: Option<Wallet>,
 }
-
 
 impl WalletUI {
     pub fn new(wallet_manager: WalletManager, blockchain_client: BlockchainClient) -> Self {
@@ -23,7 +22,7 @@ impl WalletUI {
     }
 
     pub fn run(&mut self) {
-        println!("Welccome to SafeCoin Wallet");
+        println!("Welcome to SafeCoin Wallet"); // Fixed typo "Welccome"
         println!("===========================");
 
         loop {
@@ -49,7 +48,7 @@ impl WalletUI {
                 println!("7. Settings");
                 println!("8. Lock wallet");
                 println!("9. Exit");
-            },
+            }
 
             None => {
                 println!("No wallet loaded");
@@ -63,7 +62,7 @@ impl WalletUI {
         }
 
         println!("Enter your choice: ");
-        io::stdout().flush();
+        io::stdout().flush()?;
 
         let mut choice = String::new();
         io::stdin().read_line(&mut choice)?;
@@ -71,35 +70,35 @@ impl WalletUI {
 
         if self.current_wallet.is_some() {
             match choice {
-                "1" => self.view_wallet_details(),
-                "2" => self.check_balances().await,
-                "3" => self.send_transaction(),
-                "4" => self.transaction_history(),
-                "5" => self.switch_wallet(),
-                "6" => self.create_wallet(),
-                "7" => self.settings(),
+                "1" => self.view_wallet_details()?,
+                "2" => self.check_balances().await?,
+                "3" => self.send_transaction().await?,
+                "4" => self.transaction_history()?,
+                "5" => self.switch_wallet()?,
+                "6" => self.create_wallet()?,
+                "7" => self.settings()?,
                 "8" => {
                     self.current_wallet = None;
                     println!("Wallet locked successfully");
-                },
+                }
                 "9" => {
                     println!("Thank you for using SafeCoin Wallet!");
                     std::process::exit(0);
-                },
+                }
 
                 _ => println!("Invalid choice"),
             }
         } else {
             match choice {
-                "1" => self.current_wallet,
-                "2" => self.load_wallet(),
-                "3" => self.list_wallets(),
-                "4" => self.impot_wallets(),
-                "5" => self.settings(),
+                "1" => self.create_wallet()?,
+                "2" => self.load_wallet()?,
+                "3" => self.list_wallets()?,
+                "4" => self.import_wallets()?, // Fixed typo from impot_wallets
+                "5" => self.settings()?,
                 "6" => {
                     println!("Thank you for using SafeCoin Wallet!");
                     std::process::exit(0);
-                },
+                }
                 _ => println!("Invalid choice"),
             }
         }
@@ -116,7 +115,7 @@ impl WalletUI {
             println!("Created: {}", format_timestamp(wallet.created_at));
             println!("Supported coins");
 
-            for coin_type in wallet.coin_types {
+            for coin_type in &wallet.coin_types {
                 let address = match coin_type.as_str() {
                     "bitcoin" => wallet.get_address(CoinType::Bitcoin).unwrap_or_default(),
                     "ethereum" => wallet.get_address(CoinType::Ethereum).unwrap_or_default(),
@@ -131,10 +130,11 @@ impl WalletUI {
             println!("No wallet loaded");
         }
 
-        Ok(())  
+        Ok(())
     }
 
-    fn check_balances(&self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn check_balances(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Added async keyword
         if let Some(wallet) = &self.current_wallet {
             println!("\nChecking balances...");
             let mut balances = HashMap::new();
@@ -143,32 +143,40 @@ impl WalletUI {
             for coin_type in &wallet.coin_types {
                 match coin_type.as_str() {
                     "bitcoin" => {
-                        match self.blockchain_client.get_balance(wallet, CoinType::Bitcoin).await {
+                        match self
+                            .blockchain_client
+                            .get_balance(wallet, CoinType::Bitcoin)
+                            .await
+                        {
                             Ok(balance) => {
                                 balances.insert("bitcoin", format!("{:.8} BTC", balance));
-                            }, 
+                            }
 
                             Err(e) => {
                                 balances.insert("bitcoin", format!("Error: {}", e));
                             }
                         }
-                    },
+                    }
                     "ethereum" => {
-                        match self.blockchain_client.get_balance(wallet, CoinType::Ethereum).await {
+                        match self
+                            .blockchain_client
+                            .get_balance(wallet, CoinType::Ethereum)
+                            .await
+                        {
                             Ok(balance) => {
                                 balances.insert("ethereum", format!("{:.6} ETH", balance));
-                            },
+                            }
                             Err(e) => {
                                 balances.insert("ethereum", format!("Error: {}", e));
                             }
                         }
-                    },
+                    }
                     "solana" => {
                         println!("Solana balance checking not yet implemented");
-                    },
+                    }
                     "cardano" => {
                         println!("Cardano balance checking not yet implemented");
-                    },
+                    }
                     _ => {
                         println!("Unknown coin type: {}", coin_type);
                     }
@@ -181,15 +189,14 @@ impl WalletUI {
                 println!("{}: {}", capitalize(coin), balance);
             }
         } else {
-            println!("No wallet  loaded");
+            println!("No wallet loaded");
         }
         Ok(())
     }
 
-
     async fn send_transaction(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(wallet) = &self.current_wallet {
-            println!("\nSenf Transaction");
+            println!("\nSend Transaction"); // Fixed typo "Senf"
             println!("------------------");
 
             //Select coin type
@@ -268,19 +275,27 @@ impl WalletUI {
             }
 
             // Create and broadcast transaction
-            match self.blockchain_client.create_transaction(wallet, coin_type, to_address, amount, password).await {
+            match self
+                .blockchain_client
+                .create_transaction(wallet, coin_type, to_address, amount, password)
+                .await
+            {
                 Ok(transaction) => {
-                    println!("Transaction create with ID: {}", transaction.id);
-                    match self.blockchain_client.broadcast_transaction(&transaction).await {
+                    println!("Transaction created with ID: {}", transaction.id); // Fixed typo "create" -> "created"
+                    match self
+                        .blockchain_client
+                        .broadcast_transaction(&transaction)
+                        .await
+                    {
                         Ok(tx_id) => {
                             println!("Transaction broadcast successfully!");
                             println!("Transaction ID: {}", tx_id);
-                        },
+                        }
                         Err(e) => {
                             println!("Error broadcasting transaction: {}", e);
                         }
                     }
-                },
+                }
 
                 Err(e) => {
                     println!("Error creating transaction: {}", e);
@@ -320,17 +335,17 @@ impl WalletUI {
         println!("Enter password: ");
         io::stdout().flush()?;
         let mut password = String::new();
-        io::stdin().read_line(&mut name)?;
+        io::stdin().read_line(&mut password)?; // Fixed: was using &mut name
         let password = password.trim();
 
         println!("Confirm password: ");
         io::stdout().flush()?;
         let mut confirm_password = String::new();
-        io::stdin().read_line(&mut confirm_password);
+        io::stdin().read_line(&mut confirm_password)?; // Added ? for error handling
         let confirm_password = confirm_password.trim();
 
         if password != confirm_password {
-            println!("Password do not match");
+            println!("Passwords do not match"); // Fixed typo "Password" -> "Passwords"
             return Ok(());
         }
 
@@ -338,7 +353,7 @@ impl WalletUI {
             Ok(wallet) => {
                 println!("\nWallet created successfully!");
                 println!("Wallet ID: {}", wallet.id);
-                println!("IMPORTANT: Save your seed phrase seccurely!");
+                println!("IMPORTANT: Save your seed phrase securely!"); // Fixed typo "seccurely"
                 println!("Seed phrase: {}", wallet.seed_phrase);
                 println!("\nPress any key to continue...");
 
@@ -346,7 +361,7 @@ impl WalletUI {
                 let mut buffer = [0; 1];
                 io::stdin().read_exact(&mut buffer)?;
                 self.current_wallet = Some(wallet);
-            },
+            }
             Err(e) => {
                 println!("Error creating wallet: {}", e);
             }
@@ -377,7 +392,10 @@ impl WalletUI {
             println!("{}, {}", i + 1, wallet_id);
         }
 
-        println!("Enter the number of the wallet to load (1-{}): ", wallets.len());
+        println!(
+            "Enter the number of the wallet to load (1-{}): ",
+            wallets.len()
+        );
         io::stdout().flush()?;
         let mut choice = String::new();
         io::stdin().read_line(&mut choice)?;
@@ -397,10 +415,11 @@ impl WalletUI {
         let password = password.trim();
 
         match self.wallet_manager.load_wallet(wallet_id, password) {
-            Ok(wallet) {
-                println!("Wallet load successfully!");
+            Ok(wallet) => {
+                // Fixed: added braces
+                println!("Wallet loaded successfully!");
                 self.current_wallet = Some(wallet);
-            },
+            }
             Err(e) => {
                 println!("Error loading wallet: {}", e);
             }
@@ -408,7 +427,6 @@ impl WalletUI {
 
         Ok(())
     }
-
 
     fn list_wallets(&self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\nAvailable Wallets");
@@ -423,7 +441,7 @@ impl WalletUI {
                         println!("{}, {}", i + 1, wallet_id);
                     }
                 }
-            },
+            }
             Err(e) => {
                 println!("Error listing wallets: {}", e);
             }
@@ -432,7 +450,8 @@ impl WalletUI {
         Ok(())
     }
 
-    fn impot_wallets(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn import_wallets(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        // Fixed typo "impot_wallets"
         println!("\nImport Wallets");
         println!("----------------");
         println!("Feature not yet implemented");
@@ -447,16 +466,24 @@ impl WalletUI {
 
         Ok(())
     }
-
 }
 
 pub mod cli {
     use super::*;
 
+    pub async fn run_interactive(
+        wallet_manager: &WalletManager,
+        blockchain_client: &BlockchainClient,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut ui = WalletUI::new(wallet_manager.clone(), blockchain_client.clone());
+        ui.run();
+        Ok(())
+    }
+
     pub async fn run_cli(wallet_manager: &WalletManager, blockchain_client: &BlockchainClient) {
         println!("SafeCoin Wallet CLI");
         println!("-------------------");
-        
+
         loop {
             println!("\nMain Menu:");
             println!("1. Create a wallet");
@@ -467,56 +494,56 @@ pub mod cli {
             println!("6. Exit");
             print!("Enter your choice: ");
             io::stdout().flush().unwrap();
-            
+
             let mut choice = String::new();
             io::stdin().read_line(&mut choice).unwrap();
-            
+
             match choice.trim() {
                 "1" => create_wallet(wallet_manager).await,
                 "2" => list_wallets(wallet_manager).await,
                 "3" => {
-                    let _ = load_wallet(wallet_manager).await; 
-                 },
+                    let _ = load_wallet(wallet_manager).await;
+                }
                 "4" => check_balance(wallet_manager, blockchain_client).await,
                 "5" => send_transaction(wallet_manager, blockchain_client).await,
                 "6" => {
                     println!("Thank you for using SafeCoin Wallet!");
                     break;
-                },
+                }
                 _ => println!("Invalid choice, please try again."),
             }
         }
     }
-    
+
     async fn create_wallet(wallet_manager: &WalletManager) {
         println!("\nCreate New Wallet");
         println!("-----------------");
-        
+
         print!("Enter wallet name: ");
         io::stdout().flush().unwrap();
         let mut name = String::new();
         io::stdin().read_line(&mut name).unwrap();
-        
+
         print!("Enter password: ");
         io::stdout().flush().unwrap();
         let mut password = String::new();
         io::stdin().read_line(&mut password).unwrap();
-        
+
         match wallet_manager.generate_wallet(&name.trim(), &password.trim()) {
             Ok(wallet) => {
                 println!("\nWallet created successfully!");
                 println!("Wallet ID: {}", wallet.id);
                 println!("IMPORTANT: Save your seed phrase securely!");
                 println!("Seed phrase: {}", wallet.seed_phrase);
-            },
+            }
             Err(e) => println!("Error creating wallet: {}", e),
         }
     }
-    
+
     async fn list_wallets(wallet_manager: &WalletManager) {
         println!("\nAvailable Wallets");
         println!("-----------------");
-        
+
         match wallet_manager.list_wallets() {
             Ok(wallets) => {
                 if wallets.is_empty() {
@@ -526,101 +553,113 @@ pub mod cli {
                         println!("{}. {}", i + 1, wallet_id);
                     }
                 }
-            },
+            }
             Err(e) => println!("Error listing wallets: {}", e),
         }
     }
-    
+
     async fn load_wallet(wallet_manager: &WalletManager) -> Option<Wallet> {
         println!("\nLoad Wallet");
         println!("-----------");
-        
+
         print!("Enter wallet ID: ");
         io::stdout().flush().unwrap();
         let mut wallet_id = String::new();
         io::stdin().read_line(&mut wallet_id).unwrap();
-        
+
         print!("Enter password: ");
         io::stdout().flush().unwrap();
         let mut password = String::new();
         io::stdin().read_line(&mut password).unwrap();
-        
+
         match wallet_manager.load_wallet(&wallet_id.trim(), &password.trim()) {
             Ok(wallet) => {
                 println!("Wallet loaded successfully!");
                 println!("Wallet name: {}", wallet.name);
-                
+
                 for coin_type in &wallet.coin_types {
                     match coin_type.as_str() {
                         "bitcoin" => {
                             if let Ok(address) = wallet.get_address(CoinType::Bitcoin) {
                                 println!("Bitcoin address: {}", address);
                             }
-                        },
+                        }
                         "ethereum" => {
                             if let Ok(address) = wallet.get_address(CoinType::Ethereum) {
                                 println!("Ethereum address: {}", address);
                             }
-                        },
+                        }
                         _ => {}
                     }
                 }
-                
+
                 Some(wallet)
-            },
+            }
             Err(e) => {
                 println!("Error loading wallet: {}", e);
                 None
             }
         }
     }
-    
+
     async fn check_balance(wallet_manager: &WalletManager, blockchain_client: &BlockchainClient) {
         if let Some(wallet) = load_wallet(wallet_manager).await {
             println!("\nChecking balances...");
-            
+
             for coin_type in &wallet.coin_types {
                 match coin_type.as_str() {
                     "bitcoin" => {
-                        match blockchain_client.get_balance(&wallet, CoinType::Bitcoin).await {
+                        match blockchain_client
+                            .get_balance(&wallet, CoinType::Bitcoin)
+                            .await
+                        {
                             Ok(balance) => println!("Bitcoin balance: {} BTC", balance),
                             Err(e) => println!("Error getting Bitcoin balance: {}", e),
                         }
-                    },
+                    }
                     "ethereum" => {
-                        match blockchain_client.get_balance(&wallet, CoinType::Ethereum).await {
+                        match blockchain_client
+                            .get_balance(&wallet, CoinType::Ethereum)
+                            .await
+                        {
                             Ok(balance) => println!("Ethereum balance: {} ETH", balance),
                             Err(e) => println!("Error getting Ethereum balance: {}", e),
                         }
-                    },
-                    _ => println!("{} balance checking not implemented yet", capitalize(coin_type)),
+                    }
+                    _ => println!(
+                        "{} balance checking not implemented yet",
+                        capitalize(coin_type)
+                    ),
                 }
             }
         }
     }
-    
-    async fn send_transaction(wallet_manager: &WalletManager, blockchain_client: &BlockchainClient) {
+
+    async fn send_transaction(
+        wallet_manager: &WalletManager,
+        blockchain_client: &BlockchainClient,
+    ) {
         if let Some(wallet) = load_wallet(wallet_manager).await {
             println!("\nSend Transaction");
             println!("-----------------");
-            
+
             // Select coin type
             println!("Select coin type:");
             for (i, coin_type) in wallet.coin_types.iter().enumerate() {
                 println!("{}. {}", i + 1, capitalize(coin_type));
             }
-            
+
             print!("Enter choice (1-{}): ", wallet.coin_types.len());
             io::stdout().flush().unwrap();
             let mut choice = String::new();
             io::stdin().read_line(&mut choice).unwrap();
             let choice = choice.trim().parse::<usize>().unwrap_or(0);
-            
+
             if choice < 1 || choice > wallet.coin_types.len() {
                 println!("Invalid choice");
                 return;
             }
-            
+
             let coin_type_str = &wallet.coin_types[choice - 1];
             let coin_type = match coin_type_str.as_str() {
                 "bitcoin" => CoinType::Bitcoin,
@@ -632,14 +671,14 @@ pub mod cli {
                     return;
                 }
             };
-            
+
             // Get recipient address
             print!("Enter recipient address: ");
             io::stdout().flush().unwrap();
             let mut to_address = String::new();
             io::stdin().read_line(&mut to_address).unwrap();
             let to_address = to_address.trim();
-            
+
             // Get amount
             print!("Enter amount to send: ");
             io::stdout().flush().unwrap();
@@ -652,32 +691,33 @@ pub mod cli {
                     return;
                 }
             };
-            
+
             // Get password
             print!("Enter your wallet password: ");
             io::stdout().flush().unwrap();
             let mut password = String::new();
             io::stdin().read_line(&mut password).unwrap();
             let password = password.trim();
-            
+
             // Create and broadcast transaction
-            match blockchain_client.create_transaction(
-                &wallet, coin_type, to_address, amount, password
-            ).await {
+            match blockchain_client
+                .create_transaction(&wallet, coin_type, to_address, amount, password)
+                .await
+            {
                 Ok(transaction) => {
                     println!("Transaction created with ID: {}", transaction.id);
-                    
+
                     println!("Confirm send? (y/n): ");
                     io::stdout().flush().unwrap();
                     let mut confirm = String::new();
                     io::stdin().read_line(&mut confirm).unwrap();
-                    
+
                     if confirm.trim().to_lowercase() == "y" {
                         match blockchain_client.broadcast_transaction(&transaction).await {
                             Ok(tx_id) => {
                                 println!("Transaction broadcasted successfully!");
                                 println!("Transaction ID: {}", tx_id);
-                            },
+                            }
                             Err(e) => {
                                 println!("Error broadcasting transaction: {}", e);
                             }
@@ -685,7 +725,7 @@ pub mod cli {
                     } else {
                         println!("Transaction cancelled");
                     }
-                },
+                }
                 Err(e) => {
                     println!("Error creating transaction: {}", e);
                 }
@@ -704,9 +744,9 @@ fn capitalize(s: &str) -> String {
 }
 
 fn format_timestamp(timestamp: u64) -> String {
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
     use chrono;
-    
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
     let system_time = UNIX_EPOCH + Duration::from_secs(timestamp);
     let datetime = chrono::DateTime::<chrono::Utc>::from(system_time);
     datetime.format("%Y-%m-%d %H:%M:%S UTC").to_string()

@@ -111,7 +111,7 @@ fn derive_key(password: &str, salt: &[u8]) -> Vec<u8> {
     hasher.finalize().to_vec()
 }
 
-pub fn setup_2fa() -> Result<(TOTP, String), Box<dyn std::error::Error>> {
+pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error::Error>> {
     // Generate a random secret
     let secret = Secret::generate_secret();
     let base32_secret = secret.to_encoded();
@@ -124,7 +124,7 @@ pub fn setup_2fa() -> Result<(TOTP, String), Box<dyn std::error::Error>> {
         30,
         secret.to_bytes().unwrap(),
         Some("SafeCoin Wallet".to_string()),
-        "deep60@gmail.com".to_string(),
+        username.to_string(),
     )
     .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
@@ -134,7 +134,7 @@ pub fn setup_2fa() -> Result<(TOTP, String), Box<dyn std::error::Error>> {
     Ok((base32_secret, totp_url))
 }
 
-pub fn verify_2fa(secret: &str, token: &str) -> Result<bool, Box<dyn Error>> {
+pub fn verify_2fa(secret: &str, token: &str, username: &str) -> Result<bool, Box<dyn Error>> {
     let secret = Secret::from_encoded(secret.to_string())
         .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
@@ -145,7 +145,7 @@ pub fn verify_2fa(secret: &str, token: &str) -> Result<bool, Box<dyn Error>> {
         30,
         secret.to_bytes().unwrap(),
         None,
-        "deep60@gmail.com".to_string(),
+        username.to_string(),
     )
     .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 

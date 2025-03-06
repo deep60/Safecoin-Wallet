@@ -1,6 +1,6 @@
 use crate::wallet::{CoinType, Wallet, WalletError};
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt::format};
+use std::error::Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -46,6 +46,8 @@ pub enum TransactionStatus {
 pub struct BlockchainClient {
     btc_api_url: String,
     eth_api_url: String,
+    sol_api_url: String,
+    ada_api_url: String,
     http_client: reqwest::Client,
 }
 
@@ -54,6 +56,8 @@ impl BlockchainClient {
         Self {
             btc_api_url: btc_api_url.to_string(),
             eth_api_url: eth_api_url.to_string(),
+            sol_api_url: "https://api.solana.com".to_string(), // Default URL
+            ada_api_url: "https://api.cardano.org".to_string(), // Default URL
             http_client: reqwest::Client::new(),
         }
     }
@@ -68,10 +72,8 @@ impl BlockchainClient {
         match coin_type {
             CoinType::Bitcoin => self.get_btc_balance(&address).await,
             CoinType::Ethereum => self.get_eth_balance(&address).await,
-            _ => Err(BlockchainError::ApiError(format!(
-                "Unsupported coin type: {:?}",
-                coin_type
-            ))),
+            CoinType::Solana => self.get_sol_balance(&address).await,
+            CoinType::Cardano => self.get_ada_balance(&address).await,
         }
     }
 
@@ -83,6 +85,16 @@ impl BlockchainClient {
     async fn get_eth_balance(&self, address: &str) -> Result<f64, BlockchainError> {
         println!("Querying ETH balance for address: {}", address);
         Ok(1.5678)
+    }
+
+    async fn get_sol_balance(&self, address: &str) -> Result<f64, BlockchainError> {
+        println!("Querying SOL balance for address: {}", address);
+        Ok(2.3456)
+    }
+
+    async fn get_ada_balance(&self, address: &str) -> Result<f64, BlockchainError> {
+        println!("Querying ADA balance for address: {}", address);
+        Ok(100.5678)
     }
 
     pub async fn create_transaction(
