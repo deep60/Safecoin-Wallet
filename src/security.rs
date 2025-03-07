@@ -152,7 +152,7 @@ pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error:
 }
 
 pub fn verify_2fa(secret: &str, token: &str, username: &str) -> Result<bool, Box<dyn Error>> {
-    let secret = Secret::decode(secret)
+    let secret = Secret::from_encoded(secret)
         .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
     let totp = TOTP::new(
