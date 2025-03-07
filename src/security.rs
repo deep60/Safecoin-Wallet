@@ -127,7 +127,9 @@ fn derive_key(password: &str, salt: &[u8]) -> Vec<u8> {
 
 pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error::Error>> {
     // Generate a random secret
-    let secret = Secret::generate_secret();
+    let mut secret_bytes = [0u8; 32];
+    thread_rng().fill_bytes(&mut secret_bytes);
+    let secret = Secret::Raw(secret_bytes.to_vec());
     let base32_secret = secret.to_encoded();
 
     // Create TOTP object
@@ -136,22 +138,21 @@ pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error:
         6,
         1,
         30,
-        secret
-            .to_bytes()
-            .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
-        Some("SafeCoin Wallet".to_string()),
-        username.to_string(),
+        secret.to_bytes().map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
     )
     .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
     // Generate QR code URL
-    let totp_url = totp.get_url();
+    let totp_url = format!(
+        "otpauth://totp/{}?secret={}&issuer=SafeCoin%20Wallet",
+        username, base32_secret
+    );
 
     Ok((base32_secret, totp_url))
 }
 
 pub fn verify_2fa(secret: &str, token: &str, username: &str) -> Result<bool, Box<dyn Error>> {
-    let secret = Secret::from_encoded(secret.to_string())
+    let secret = Secret::decode(secret)
         .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
     let totp = TOTP::new(
@@ -159,11 +160,7 @@ pub fn verify_2fa(secret: &str, token: &str, username: &str) -> Result<bool, Box
         6,
         1,
         30,
-        secret
-            .to_bytes()
-            .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
-        None,
-        username.to_string(),
+        secret.to_bytes().map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
     )
     .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
