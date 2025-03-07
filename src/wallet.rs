@@ -9,7 +9,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use thiserror::Error;
-use rand;
+use rand::{self, RngCore};
 
 #[derive(Error, Debug)]
 pub enum WalletError {
@@ -96,7 +96,7 @@ impl WalletManager {
         rand::thread_rng().fill_bytes(&mut entropy);
         let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)
             .map_err(|e| WalletError::CryptoError(format!("Failed to generate mnemonic: {}", e)))?;
-        let seed_phrase = mnemonic.phrase().to_string();
+        let seed_phrase = mnemonic.to_string();
 
         // Derive seed from mnemonic
         let seed = mnemonic.to_seed(password);
