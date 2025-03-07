@@ -1,4 +1,4 @@
-<img width="818" alt="Screenshot 2025-03-08 at 00 28 24" src="https://github.com/user-attachments/assets/e0853e3a-6634-412e-a379-eba9a761a782" /># SafeCoin Wallet
+# SafeCoin Wallet
 
 A secure, cross-platform, multi-coin cryptocurrency wallet built in Rust.
 
