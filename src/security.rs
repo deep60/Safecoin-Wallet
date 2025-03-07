@@ -133,7 +133,7 @@ pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error:
     let base32_secret = secret.to_encoded().to_string();
 
     // Create TOTP object
-    let totp = TOTP::new(
+    let _totp = TOTP::new(
         Algorithm::SHA1,
         6,
         1,
@@ -152,7 +152,7 @@ pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error:
 }
 
 pub fn verify_2fa(secret: &str, token: &str, username: &str) -> Result<bool, Box<dyn Error>> {
-    let secret = Secret::from_base32(secret)
+    let secret = Secret::decode_base32(secret)
         .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
     let totp = TOTP::new(
