@@ -1,4 +1,4 @@
-# SafeCoin Wallet
+<img width="818" alt="Screenshot 2025-03-08 at 00 28 24" src="https://github.com/user-attachments/assets/e0853e3a-6634-412e-a379-eba9a761a782" /># SafeCoin Wallet
 
 A secure, cross-platform, multi-coin cryptocurrency wallet built in Rust.
 
@@ -89,7 +89,6 @@ safecoin-wallet/
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Contributing
-
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
@@ -97,3 +96,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes: `git commit -m 'Add some amazing feature'`
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
+
+<img width="818" alt="Screenshot 2025-03-08 at 00 28 24" src="https://github.com/user-attachments/assets/4b13374c-76c0-4052-80d9-25df62bdeb2b" />
+
+
