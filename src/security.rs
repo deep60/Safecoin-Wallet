@@ -3,7 +3,7 @@ use aes::{
     Aes256,
 };
 use hmac::{Hmac, Mac};
-use rand_core::{CryptoRng, OsRng, RngCore};
+use rand::{thread_rng, RngCore};
 use sha2::{Digest, Sha256};
 use std::error::Error;
 use thiserror::Error;
@@ -28,14 +28,14 @@ pub enum SecurityError {
 pub fn encrypt_string(data: &str, password: &str) -> Result<String, Box<dyn Error>> {
     // Generate a salt
     let mut salt = [0u8; 16];
-    OsRng::default().fill_bytes(&mut salt);
+    thread_rng().fill_bytes(&mut salt);
 
     // Derive key from password and salt
     let key = derive_key(password, &salt);
 
     // Create an IV (initialization vector)
     let mut iv = [0u8; 16];
-    OsRng::default().fill_bytes(&mut iv);
+    thread_rng().fill_bytes(&mut iv);
 
     // Pad the data to be a multiple of 16 bytes (AES block size)
     let mut padded_data = data.as_bytes().to_vec();
@@ -91,15 +91,29 @@ pub fn decrypt_string(encrypted_hex: &str, password: &str) -> Result<String, Box
     }
 
     // Remove padding
-    if let Some(&padding_len) = blocks.last() {
-        if padding_len as usize <= 16 && padding_len > 0 {
-            let message_len = blocks.len() - (padding_len as usize);
-            blocks.truncate(message_len);
-        }
+    if blocks.is_empty() {
+        return Err(Box::new(SecurityError::DecryptionError(
+            "Decrypted data is empty".into(),
+        )));
+    }
+
+    let padding_len = blocks[blocks.len() - 1] as usize;
+    if padding_len > 0 && padding_len <= 16 {
+        let message_len = blocks.len() - padding_len;
+        blocks.truncate(message_len);
+    } else {
+        return Err(Box::new(SecurityError::DecryptionError(
+            "Invalid padding".into(),
+        )));
     }
 
     // Convert to string
-    let decrypted = String::from_utf8(blocks)?;
+    let decrypted = String::from_utf8(blocks).map_err(|e| {
+        Box::new(SecurityError::DecryptionError(format!(
+            "UTF-8 conversion error: {}",
+            e
+        )))
+    })?;
     Ok(decrypted)
 }
 
@@ -122,7 +136,9 @@ pub fn setup_2fa(username: &str) -> Result<(String, String), Box<dyn std::error:
         6,
         1,
         30,
-        secret.to_bytes().map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
+        secret
+            .to_bytes()
+            .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
         Some("SafeCoin Wallet".to_string()),
         username.to_string(),
     )
@@ -143,20 +159,24 @@ pub fn verify_2fa(secret: &str, token: &str, username: &str) -> Result<bool, Box
         6,
         1,
         30,
-        secret.to_bytes().map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
+        secret
+            .to_bytes()
+            .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?,
         None,
         username.to_string(),
     )
     .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?;
 
-    Ok(totp.check_current(token).map_err(|e| Box::(SecurityError::TOTPError(e.to_string()))))?)
+    Ok(totp
+        .check_current(token)
+        .map_err(|e| Box::new(SecurityError::TOTPError(e.to_string())))?)
 }
 
 // Generate a cryptographically secure random password
 pub fn generate_secure_password(length: usize) -> String {
     const CHARSET: &[u8] =
         b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+";
-    let mut rng = OsRng;
+    let mut rng = thread_rng();
 
     let password: String = (0..length)
         .map(|_| {
