@@ -1,6 +1,6 @@
 use crate::config::AppConfig;
 use crate::security;
-use bip39::{Language, Mnemonic};
+use bip39::{Language, Mnemonic, WordCount};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -91,7 +91,8 @@ impl WalletManager {
 
     pub fn generate_wallet(&self, name: &str, password: &str) -> Result<Wallet, WalletError> {
         // Generate a random mnemonic (seed phrase)
-        let mnemonic = Mnemonic::new(Mnemonic::Words12, Language::English);
+        let mnemonic = Mnemonic::new_random(Language::English, WordCount::Words12)
+            .map_err(|e| WalletError::CryptoError(format!("Failed to generate mnemonic: {}", e)))?;
         let seed_phrase = mnemonic.phrase().to_string();
 
         // Derive seed from mnemonic
